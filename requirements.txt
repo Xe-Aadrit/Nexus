@@ -1,0 +1,14 @@
+# Core dependencies
+discord.py>=2.7,<3.0
+aiosqlite>=0.20,<1.0
+python-dotenv>=1.0,<2.0
+
+# Voice support (needed even without the optional speaking-tracker below,
+# since discord.py's own voice connection code needs it).
+PyNaCl>=1.5,<2.0
+davey>=0.1.6,<1.0
+
+# --- Optional: only needed if ENABLE_SPEAKING_TRACKING=true ---
+# Experimental/third-party, not maintained by the discord.py project.
+# Uncomment to install, or: pip install discord-ext-voice-recv
+# discord-ext-voice-recv>=0.5.0a0
