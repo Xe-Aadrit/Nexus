@@ -19,33 +19,41 @@ from database import Database
 from cogs.voice_tracking import VoiceTracking
 from cogs.message_tracking import MessageTracking
 from cogs.stats import Stats
+from cogs.elite_points import ElitePoints
+from cogs.weekly_roles import WeeklyRoles
+from cogs.anti_spam import AntiSpam
+from cogs.anti_farm import AntiFarm
+from cogs.admin import Admin
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
 )
-log = logging.getLogger("activity_bot")
+log = logging.getLogger("nexus")
 
 
 class ActivityBot(commands.Bot):
     def __init__(self, config, db: Database):
-        # --- Minimum gateway intents necessary ---
+        # --- Gateway intents ---
         # guilds:         populates the channel/thread caches; required for
         #                 essentially any bot to function. Not privileged.
         # voice_states:   required for join/leave/move/mute/deafen/stream
         #                 events. Not privileged.
         # guild_messages: required to receive on_message so we can count
         #                 messages. Not privileged.
+        # members:        PRIVILEGED — required to look up guild members by
+        #                 ID (needed when assigning weekly roles and resolving
+        #                 voter names from Vote Tracker messages). Must be
+        #                 enabled in the Discord Developer Portal under
+        #                 Bot → Privileged Gateway Intents.
         #
-        # We deliberately do NOT request the privileged `message_content`,
-        # `members`, or `presences` intents - we only ever need to *count*
-        # messages (never read them) and we get full Member objects directly
-        # on the events we do subscribe to.
+        # We deliberately do NOT request message_content or presences.
         intents = discord.Intents.none()
         intents.message_content = True
         intents.guilds = True
         intents.voice_states = True
         intents.guild_messages = True
+        intents.members = True  # Privileged: needed for role assignment
 
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
@@ -54,6 +62,11 @@ class ActivityBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         await self.db.connect()
+
+        # Core tracking cogs (order matters: AntiSpam before MessageTracking
+        # so the cog is available via bot.cogs when on_message fires)
+        anti_spam = AntiSpam(self, self.db)
+        await self.add_cog(anti_spam)
 
         voice_tracking = VoiceTracking(
             self,
@@ -66,6 +79,7 @@ class ActivityBot(commands.Bot):
         await self.add_cog(MessageTracking(self, self.db))
         await self.add_cog(Stats(self, self.db, voice_tracking))
 
+        # Optional: real speaking-time detection
         if self.config.enable_speaking_tracking:
             try:
                 from cogs.speaking_tracking import SpeakingTracking
@@ -87,11 +101,32 @@ class ActivityBot(commands.Bot):
                     exc,
                 )
 
+        # New feature cogs
+        await self.add_cog(ElitePoints(self, self.db, self.config))
+        await self.add_cog(WeeklyRoles(self, self.db, self.config))
+        await self.add_cog(AntiFarm(self, self.db, self.config))
+        await self.add_cog(Admin(self, self.db))
+
+        # Sync slash commands
+        if self.config.guild_id:
+            # Guild-scoped sync: instant, good for development/testing
+            guild_obj = discord.Object(id=self.config.guild_id)
+            self.tree.copy_global_to(guild=guild_obj)
+            await self.tree.sync(guild=guild_obj)
+            log.info(
+                "Slash commands synced to guild %d (instant).",
+                self.config.guild_id,
+            )
+        else:
+            # Global sync: takes up to 1 hour to propagate across Discord
+            await self.tree.sync()
+            log.info("Slash commands synced globally.")
+
     async def close(self) -> None:
         # Idempotent: safe even if called more than once (e.g. once from an
         # explicit shutdown-signal handler and again via `async with bot:`
         # tearing down).
-        log.info("Shutting down - flushing in-progress voice sessions...")
+        log.info("Shutting down — flushing in-progress voice sessions...")
         if self.voice_tracking is not None:
             await self.voice_tracking.shutdown()
         await self.db.close()
