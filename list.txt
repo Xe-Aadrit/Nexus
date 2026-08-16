@@ -1,0 +1,39 @@
+======= Nexus =======
+
+Timezone: UTC (Coordinated Universal Time)
+
+Features:
+
+- Supports both Slash Commands ('/') and Prefix Commands ('!', etc.)
+
+- Activity Tracking
+    - Our bot tracks activity of members across chats and VCs (1 Day / 7 Days / 30 Days / n Days)
+    - Chat Activity: No of messages sent
+    - VC Activity:
+        - Amount of time spent in a VC
+        - Amount of time Streamed
+        - Amount of time spent with microphone on
+        - Amount of time spent speaking
+        NOTE: Amount of time speaking is NOT equal to Amount of time spent with microphone on.
+    - NOTE: No sensitive information is ever collected or stored.
+
+- Elite Points
+    - Every time when someone votes, the vote tracker of Top.gg sends a webhook. That webhook will be useful for automating the Elite Points distribution process every time someone votes.
+
+- Automated Roles: VC, Chat, Streaming
+    - Our bot tracks the activity of members across chats (no. of messages sent) and VCs. We'll use this data to automate the roles of:
+        - Streamer Of The Week (Most Time Streamed)
+        - VC Dominator (Most Time spent in a VC)
+        - Soul Of The Chat (Most Messages Sent)
+    - These are counted on a WEEKLY basis, giving every one a fair chance every week.
+
+- Anti Spam & Anti Farm Systems (Toggleable)
+    - Anti Spam System:
+        - This system doesn't let users get xp for spam messages (multiple messages sent in a short duration of time.)
+        - This is toggleable, i.e. it can be turned on/off.
+
+    - Anti Farm System:
+        - This system doesn't let users farm VC hours (primarily for VC Dominator role.)
+        - This is toggleable, i.e. it can be turned on/off.
+
+
