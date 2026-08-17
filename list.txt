@@ -35,5 +35,3 @@ Features:
     - Anti Farm System:
         - This system doesn't let users farm VC hours (primarily for VC Dominator role.)
         - This is toggleable, i.e. it can be turned on/off.
-
-
